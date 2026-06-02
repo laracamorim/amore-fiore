@@ -4,9 +4,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_PATH = process.env.NODE_ENV === 'production'
-  ? '/data/amore-fiore.db'
-  : path.join(__dirname, 'data.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data.db');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
