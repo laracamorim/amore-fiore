@@ -1,88 +1,73 @@
 const express = require('express');
-const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data.db');
+const DATA_FILE = path.join(__dirname, 'data.json');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Database setup ────────────────────────────────────────────────
-const db = new Database(DB_PATH);
+// ── JSON data store ───────────────────────────────────────────────
+function loadData() {
+  try {
+    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  } catch {
+    return { market: [], notes: [], todos: [] };
+  }
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS market (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    person TEXT NOT NULL DEFAULT 'ambos',
-    bought INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch())
-  );
+function saveData(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
 
-  CREATE TABLE IF NOT EXISTS notes (
-    id INTEGER PRIMARY KEY,
-    dest TEXT NOT NULL,
-    text TEXT NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch())
-  );
-
-  CREATE TABLE IF NOT EXISTS todos (
-    id INTEGER PRIMARY KEY,
-    text TEXT NOT NULL,
-    person TEXT NOT NULL DEFAULT 'ambos',
-    done INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch())
-  );
-`);
+function nextId(items) {
+  return items.length === 0 ? 1 : Math.max(...items.map(i => i.id)) + 1;
+}
 
 // ── Generic CRUD factory ──────────────────────────────────────────
-function crudRouter(table, insertFields) {
+function crudRouter(table) {
   const router = express.Router();
 
   router.get('/', (req, res) => {
-    const rows = db.prepare(`SELECT * FROM ${table} ORDER BY created_at DESC`).all();
-    res.json(rows);
+    const data = loadData();
+    res.json(data[table]);
   });
 
   router.post('/', (req, res) => {
-    const body = req.body;
-    const cols = insertFields.join(', ');
-    const placeholders = insertFields.map(f => '@' + f).join(', ');
-    const params = {};
-    for (const f of insertFields) params[f] = body[f] ?? null;
-    const info = db.prepare(`INSERT INTO ${table} (${cols}) VALUES (${placeholders})`).run(params);
-    const row = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(info.lastInsertRowid);
-    res.status(201).json(row);
+    const data = loadData();
+    const item = { id: nextId(data[table]), ...req.body, created_at: Math.floor(Date.now() / 1000) };
+    data[table].unshift(item);
+    saveData(data);
+    res.status(201).json(item);
   });
 
   router.patch('/:id', (req, res) => {
-    const body = req.body;
-    const sets = Object.keys(body).map(k => `${k} = @${k}`).join(', ');
-    if (!sets) return res.status(400).json({ error: 'No fields to update' });
-    body.id = Number(req.params.id);
-    db.prepare(`UPDATE ${table} SET ${sets} WHERE id = @id`).run(body);
-    const row = db.prepare(`SELECT * FROM ${table} WHERE id = @id`).get({ id: body.id });
-    res.json(row);
+    const data = loadData();
+    const idx = data[table].findIndex(i => i.id === Number(req.params.id));
+    if (idx === -1) return res.status(404).json({ error: 'not found' });
+    data[table][idx] = { ...data[table][idx], ...req.body };
+    saveData(data);
+    res.json(data[table][idx]);
   });
 
   router.delete('/:id', (req, res) => {
-    db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(Number(req.params.id));
+    const data = loadData();
+    data[table] = data[table].filter(i => i.id !== Number(req.params.id));
+    saveData(data);
     res.status(204).end();
   });
 
   return router;
 }
 
-app.use('/api/market',  crudRouter('market',  ['name', 'person']));
-app.use('/api/notes',   crudRouter('notes',   ['dest', 'text']));
-app.use('/api/todos',   crudRouter('todos',   ['text', 'person']));
+app.use('/api/market',  crudRouter('market'));
+app.use('/api/notes',   crudRouter('notes'));
+app.use('/api/todos',   crudRouter('todos'));
 
-// ── Health check ──────────────────────────────────────────────────
 app.get('/api/ping', (req, res) => res.json({ ok: true }));
 
-// ── SPA fallback ──────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
