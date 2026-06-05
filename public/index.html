@@ -341,6 +341,15 @@ textarea { resize: vertical; min-height: 80px; }
 .cycle-bar-track { height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; margin-bottom:10px; }
 .cycle-bar-fill { height:100%; background:var(--navy-mid); border-radius:5px; transition:width 0.7s ease; }
 .cycle-bar-fill.over { background:#e74c3c; }
+.update-banner { border-radius:10px; padding:10px 16px; font-size:13px; margin-bottom:20px; }
+.update-banner.warn { background:#fff8e1; border:1px solid #f9c74f; color:#7a5800; }
+.update-banner.ok   { background:#f0fdf4; border:1px solid #86efac; color:#166534; }
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--navy-dark); color:#fff; padding:12px 24px; border-radius:10px;
+  font-size:13px; opacity:0; transition:all 0.3s ease; pointer-events:none; z-index:9999; white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .cycle-label { font-size:9px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color:var(--gold); background:rgba(201,168,76,0.12); padding:3px 8px; border-radius:10px; }
 .cycle-cats-detail { margin-top:10px; display:flex; flex-direction:column; gap:5px; }
 .cycle-cat-row { display:flex; align-items:center; gap:8px; }
@@ -512,6 +521,7 @@ textarea { resize: vertical; min-height: 80px; }
 
   <!-- GASTOS -->
   <div class="tab-content active" id="tab-gastos">
+    <div id="gastos-update-banner" style="display:none"></div>
     <div id="gastos-upload-area">
       <div class="section-label">Importar Extrato</div>
       <div class="upload-zone" id="upload-zone">
@@ -1016,7 +1026,7 @@ function renderTodos() {
 // ── Gastos: categorias personalizadas Milão ───────────────────────
 const CAT_COLORS = {
   'Refeições Fora':'#e74c3c','Supermercado':'#27ae60','Casa & Deco':'#16a085',
-  'Transporte':'#8e44ad','Bebé · António':'#e67e22','Diarista':'#c9a84c',
+  'Transporte':'#8e44ad','Bebé · Antonio':'#e67e22','Diarista':'#c9a84c',
   'Saúde':'#2980b9','Viagens':'#1abc9c','Lazer':'#9b59b6',
   'Moda':'#e91e8c','Subscrições':'#607d8b','Cash':'#795548','Outros':'#95a5a6'
 };
@@ -1027,7 +1037,7 @@ const CAT_KEYWORDS = {
   'Supermercado':  ['carrefour','esselunga','to.market','macelleria','salumeria','coop','lidl','aldi','pam ','conad','tesco','mundo verde','pendryk','interspar','alí','aliper','crifrutta','corsico food','societa agricola','centro della mozz','nespresso','cornaredo','sanmilano','vara di molfet'],
   'Transporte':    ['uber','atm - azienda','taxi','park west','parking','autopista del sol','trenord','trenitalia','ryanair','easyjet','specchia fabio','eni ','eni s','repsol','malpensa express','radio taxi','cabify','flixbus','italotreno','atm '],
   'Casa & Deco':   ['ikea','zara home','sklum','viridea','aesop','etsy','westwing','figli dei fiori','rocat','casa fiori','namirial','la rinascente','flying tiger','ferramenta','dm drogerie','le fioraie','flora m','ridibio','sugar srl','just in case'],
-  'Bebé · António':['paola da vinci','trousseau','prenatal','baby','camila freitas'],
+  'Bebé · Antonio':['paola da vinci','trousseau','prenatal','baby','camila freitas'],
   'Saúde':         ['centro medico','pharmacy','farmacia','sempione','medico','clinica','santagosti','mater dei'],
   'Viagens':       ['la residencia','social club tarifa','bibo beach','malaga airport','malpensa airport','www.1global','relay','varadero','aeromix','just in case','ultra milano','airbnb','booking.com'],
   'Lazer':         ['gog edizioni','uci zon','anteo','ingresso','feltrinelli','lafeltrinelli','decathlon','cinema','teatro','museo'],
@@ -1114,7 +1124,7 @@ function parseRows(rows) {
       const cat = categorize(desc);
       if (cat === 'AMAZON_SPLIT') {
         txs.push({desc,date,amount:Math.abs(amt)*0.5,category:'Casa & Deco'});
-        txs.push({desc,date,amount:Math.abs(amt)*0.5,category:'Bebé · António'});
+        txs.push({desc,date,amount:Math.abs(amt)*0.5,category:'Bebé · Antonio'});
       } else {
         txs.push({desc,date,amount:Math.abs(amt),category:cat});
       }
@@ -1276,10 +1286,60 @@ function renderGastos({txs, depositEvents}) {
     </li>`).join('');
 }
 
-function resetGastos() {
+async function resetGastos() {
+  if (!confirm('Apagar todos os extratos guardados?')) return;
+  loadStart();
+  await api('DELETE', '/transactions');
   document.getElementById('gastos-upload-area').style.display='block';
   document.getElementById('gastos-data').style.display='none';
   document.getElementById('csv-input').value='';
+  document.getElementById('gastos-update-banner').style.display='none';
+  loadDone();
+}
+
+function showUpdateBanner(lastUpdatedTs) {
+  const banner = document.getElementById('gastos-update-banner');
+  if (!lastUpdatedTs) { banner.style.display='none'; return; }
+  const days = Math.floor((Date.now()/1000 - lastUpdatedTs) / 86400);
+  const d = new Date(lastUpdatedTs * 1000);
+  const dateStr = fmtDate(d);
+  if (days >= 10) {
+    banner.innerHTML = `⚠️ Última atualização há <strong>${days} dias</strong> (${dateStr}) — hora de importar o extrato mais recente!`;
+    banner.className = 'update-banner warn';
+  } else {
+    banner.innerHTML = `✦ Atualizado em ${dateStr} · próxima atualização em ${10 - days} dias`;
+    banner.className = 'update-banner ok';
+  }
+  banner.style.display = 'block';
+}
+
+async function loadSavedTransactions() {
+  try {
+    const data = await api('GET', '/transactions');
+    if (!data || !data.transactions || data.transactions.length === 0) return;
+    // Converter para formato interno
+    const txs = data.transactions.map(t => ({
+      desc: t.description,
+      date: new Date(t.tx_date),
+      amount: parseFloat(t.amount),
+      category: t.category
+    }));
+    // Reconstituir depositEvents a partir das transacções (não temos depósitos guardados, usamos um placeholder)
+    const parsed = { txs, depositEvents: [] };
+    renderGastos(parsed);
+    showUpdateBanner(data.last_updated);
+  } catch(e) { /* sem dados guardados */ }
+}
+
+async function syncTransactions(txs) {
+  const payload = txs.map(t => ({
+    tx_date: t.date instanceof Date ? t.date.toISOString().slice(0,10) : t.date,
+    description: t.desc,
+    amount: t.amount.toFixed(2),
+    category: t.category
+  }));
+  const result = await api('POST', '/transactions/sync', { transactions: payload });
+  return result;
 }
 
 const uploadZone=document.getElementById('upload-zone');
@@ -1293,13 +1353,46 @@ function readFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   if (ext === 'xlsx' || ext === 'xls') {
     const r = new FileReader();
-    r.onload = e => renderGastos(parseRevolutExcel(new Uint8Array(e.target.result)));
+    r.onload = async e => {
+      const parsed = parseRevolutExcel(new Uint8Array(e.target.result));
+      renderGastos(parsed);
+      loadStart();
+      const result = await syncTransactions(parsed.txs);
+      showUpdateBanner(Math.floor(Date.now()/1000));
+      loadDone();
+      if (result) {
+        const msg = result.inserted > 0
+          ? `✅ ${result.inserted} novas transações guardadas${result.skipped > 0 ? ` · ${result.skipped} já existiam` : ''}`
+          : `Nenhuma transação nova — ${result.skipped} já estavam guardadas`;
+        showToast(msg);
+      }
+    };
     r.readAsArrayBuffer(file);
   } else {
     const r = new FileReader();
-    r.onload = e => renderGastos(parseRevolutCSV(e.target.result));
+    r.onload = async e => {
+      const parsed = parseRevolutCSV(e.target.result);
+      renderGastos(parsed);
+      loadStart();
+      const result = await syncTransactions(parsed.txs);
+      showUpdateBanner(Math.floor(Date.now()/1000));
+      loadDone();
+      if (result) {
+        const msg = result.inserted > 0
+          ? `✅ ${result.inserted} novas transações guardadas${result.skipped > 0 ? ` · ${result.skipped} já existiam` : ''}`
+          : `Nenhuma transação nova — ${result.skipped} já estavam guardadas`;
+        showToast(msg);
+      }
+    };
     r.readAsText(file, 'UTF-8');
   }
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id='toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.className = 'toast show';
+  setTimeout(() => t.className = 'toast', 3500);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
@@ -1314,6 +1407,7 @@ async function init() {
   renderTodos();
   renderRepo();
   syncPersonSelectors();
+  await loadSavedTransactions();
   loadDone();
 }
 
