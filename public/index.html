@@ -341,8 +341,15 @@ textarea { resize: vertical; min-height: 80px; }
 .cycle-bar-track { height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; margin-bottom:10px; }
 .cycle-bar-fill { height:100%; background:var(--navy-mid); border-radius:5px; transition:width 0.7s ease; }
 .cycle-bar-fill.over { background:#e74c3c; }
-.cycle-cats { display:flex; flex-wrap:wrap; gap:6px; }
-.cycle-cat-tag { font-size:10px; font-weight:500; padding:3px 8px; border-radius:12px; border:1px solid; letter-spacing:0.5px; }
+.cycle-label { font-size:9px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color:var(--gold); background:rgba(201,168,76,0.12); padding:3px 8px; border-radius:10px; }
+.cycle-cats-detail { margin-top:10px; display:flex; flex-direction:column; gap:5px; }
+.cycle-cat-row { display:flex; align-items:center; gap:8px; }
+.cycle-cat-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.cycle-cat-name { font-size:11px; color:var(--text-secondary); width:130px; flex-shrink:0; }
+.cycle-cat-bar-track { flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden; }
+.cycle-cat-bar-fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
+.cycle-cat-pct { font-size:10px; color:var(--text-muted); width:30px; text-align:right; flex-shrink:0; }
+.cycle-cat-val { font-size:11px; color:var(--text-secondary); width:72px; text-align:right; flex-shrink:0; }
 
 /* MERCADO */
 .add-row { display: flex; gap: 8px; margin-bottom: 24px; }
@@ -1122,7 +1129,6 @@ function buildCycles(depositEvents, txs) {
   const sorted = [...depositEvents].sort((a,b) => a.date - b.date);
   const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-  // Agrupar depósitos próximos num único ciclo
   const groups = [];
   let cur = [sorted[0]];
   for (let i = 1; i < sorted.length; i++) {
@@ -1132,36 +1138,42 @@ function buildCycles(depositEvents, txs) {
   }
   groups.push(cur);
 
-  // Nomear cada ciclo: dia >= 26 → mês seguinte
   const cycles = groups.map((grp, idx) => {
     const firstDate = grp[0].date;
     const totalDep  = grp.reduce((s,d) => s+d.amount, 0);
-    let month = firstDate.getMonth(); // 0-indexed
+    let month = firstDate.getMonth();
     let year  = firstDate.getFullYear();
     if (firstDate.getDate() >= 26) { month++; if (month > 11) { month = 0; year++; } }
-    const name = MONTH_NAMES[month] + ' ' + String(year).slice(2);
+    const name  = MONTH_NAMES[month] + ' ' + String(year).slice(2);
     const start = grp[0].date;
-    const end   = idx < groups.length - 1 ? new Date(groups[idx+1][0].date - 86400000) : null; // dia antes do próx depósito
+    const end   = idx < groups.length - 1 ? new Date(groups[idx+1][0].date - 86400000) : null;
     return { name, start, end, deposit: totalDep };
   });
 
-  // Excluir o primeiro ciclo (é o de abertura — incompleto)
+  // Excluir o primeiro ciclo (incompleto/abertura)
   const activeCycles = cycles.slice(1);
 
-  // Calcular gastos de cada ciclo
   return activeCycles.map(cy => {
     const cyTxs = txs.filter(t => {
       if (!(t.date instanceof Date)) return false;
-      if (t.date < cy.start) return false;
-      if (cy.end && t.date > cy.end) return false;
-      return true;
+      return t.date >= cy.start && (!cy.end || t.date <= cy.end);
     });
+
     const catTotals = {};
     for (const t of cyTxs) catTotals[t.category] = (catTotals[t.category]||0) + t.amount;
-    const total = Object.values(catTotals).reduce((s,v)=>s+v,0);
-    const days  = cy.end ? Math.round((cy.end - cy.start)/86400000) : Math.round((new Date()-cy.start)/86400000);
+
+    // Se o ciclo não tem Diarista no Revolut → adicionar €500 (pagamento direto)
+    const hasDiarista = cyTxs.some(t => t.category === 'Diarista');
+    const gilmeireExtra = !hasDiarista ? 500 : 0;
+    if (gilmeireExtra) {
+      catTotals['Diarista'] = (catTotals['Diarista']||0) + gilmeireExtra;
+    }
+
+    const total    = Object.values(catTotals).reduce((s,v)=>s+v,0);
+    const budget   = cy.deposit + gilmeireExtra;
+    const days     = cy.end ? Math.round((cy.end - cy.start)/86400000) : Math.round((new Date()-cy.start)/86400000);
     const isActive = !cy.end;
-    return {...cy, catTotals, total, days, isActive};
+    return {...cy, catTotals, total, budget, days, isActive};
   });
 }
 
@@ -1208,24 +1220,35 @@ function renderGastos({txs, depositEvents}) {
   const cycles = buildCycles(depositEvents, txs);
   const BUDGET = 3000;
 
-  const cycleHTML = cycles.map(cy => {
-    const pct  = Math.min(cy.total / BUDGET * 100, 100).toFixed(0);
-    const over = cy.total > BUDGET;
-    const diff = BUDGET - cy.total;
+  const cycleHTML = cycles.map((cy, idx) => {
+    const budget   = cy.budget || BUDGET;
+    const pct      = Math.min(cy.total / budget * 100, 100).toFixed(0);
+    const over     = cy.total > budget;
+    const diff     = budget - cy.total;
     const endLabel = cy.isActive ? 'em curso' : fmtDate(cy.end);
-    const statusIcon = cy.isActive ? '🔄' : (over ? '⚠️' : '✅');
-    const topCats = Object.entries(cy.catTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    const topStr  = topCats.map(([c,v])=>`<span class="cycle-cat-tag" style="background:${CAT_COLORS[c]||'#eee'}22;border-color:${CAT_COLORS[c]||'#ccc'}44;color:${CAT_COLORS[c]||'#666'}">${c} ${fmtEur(v)}</span>`).join('');
+    const icon     = cy.isActive ? '🔄' : (over ? '⚠️' : '✅');
+    const allCats  = Object.entries(cy.catTotals).sort((a,b)=>b[1]-a[1]);
+    const catsHTML = allCats.map(([c,v]) => {
+      const pctC = (v/cy.total*100).toFixed(0);
+      const color = CAT_COLORS[c]||'#95a5a6';
+      return `<div class="cycle-cat-row">
+        <span class="cycle-cat-dot" style="background:${color}"></span>
+        <span class="cycle-cat-name">${c}</span>
+        <div class="cycle-cat-bar-track"><div class="cycle-cat-bar-fill" style="width:${pctC}%;background:${color}"></div></div>
+        <span class="cycle-cat-pct">${pctC}%</span>
+        <span class="cycle-cat-val">${fmtEur(v)}</span>
+      </div>`;
+    }).join('');
+
     return `<div class="cycle-row">
       <div class="cycle-header">
+        <span class="cycle-label">Ciclo ${idx+1}</span>
         <span class="cycle-name">${cy.name}</span>
         <span class="cycle-dates">${fmtDate(cy.start)} → ${endLabel} · ${cy.days} dias</span>
-        <span class="cycle-status">${statusIcon} <strong class="${over?'over-budget':''}">${fmtEur(cy.total)}</strong> <span class="budget-target">/ €${BUDGET}</span> <span class="${over?'over-budget':'cycle-surplus'}">${diff>=0?'+':''}${fmtEur(Math.abs(diff))}</span></span>
+        <span class="cycle-status">${icon} <strong class="${over?'over-budget':''}">${fmtEur(cy.total)}</strong><span class="budget-target"> / €${budget.toFixed(0)}</span> <span class="${over?'over-budget':'cycle-surplus'}">${diff>=0?'+':''}${fmtEur(Math.abs(diff))}</span></span>
       </div>
-      <div class="cycle-bar-track">
-        <div class="cycle-bar-fill${over?' over':''}" style="width:${pct}%"></div>
-      </div>
-      <div class="cycle-cats">${topStr}</div>
+      <div class="cycle-bar-track"><div class="cycle-bar-fill${over?' over':''}" style="width:${pct}%"></div></div>
+      <div class="cycle-cats-detail">${catsHTML}</div>
     </div>`;
   }).join('');
 
