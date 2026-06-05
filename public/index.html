@@ -38,9 +38,92 @@ body {
   min-height: 100vh;
 }
 
+/* LOGIN OVERLAY */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--navy-dark);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.login-overlay.hidden { display: none; }
+
+.login-box {
+  text-align: center;
+  padding: 48px 32px;
+  max-width: 360px;
+  width: 100%;
+}
+
+.login-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42px;
+  color: #fff;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.login-logo em { font-style: italic; color: var(--gold); }
+
+.login-sub {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 48px;
+}
+
+.login-question {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 300;
+  color: #c0cde0;
+  margin-bottom: 32px;
+}
+
+.login-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.login-btn {
+  flex: 1;
+  padding: 20px 16px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.login-btn:hover {
+  background: rgba(201,168,76,0.15);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.login-btn .login-btn-sub {
+  display: block;
+  font-family: 'Jost', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* HEADER */
 header {
   background: var(--navy-dark);
-  padding: 20px 32px;
+  padding: 16px 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -69,45 +152,73 @@ header {
   color: var(--text-muted);
 }
 
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
 .header-date { text-align: right; }
 .header-date .date-day { font-size: 11px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
 .header-date .date-full { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 300; color: #c0cde0; margin-top: 2px; }
 .header-date .date-line { height: 1px; background: var(--gold); margin-top: 6px; opacity: 0.6; }
 
-nav { background: var(--navy-mid); display: flex; overflow-x: auto; }
-
-nav button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 16px 28px;
-  font-family: 'Jost', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #7a93b8;
-  border-bottom: 2px solid transparent;
-  transition: color var(--transition), border-color var(--transition);
-  white-space: nowrap;
+.user-chip {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 5px 12px 5px 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.user-chip:hover { background: rgba(201,168,76,0.15); border-color: var(--gold); }
+
+.user-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500;
+  color: var(--navy-dark);
+  flex-shrink: 0;
+}
+
+.avatar-lara { background: #a8c4e0; }
+.avatar-alberto { background: #e0c4a8; }
+
+.user-name {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: #c0cde0;
+}
+
+.user-switch {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+/* NAV */
+nav { background: var(--navy-mid); display: flex; overflow-x: auto; }
+
+nav button {
+  background: none; border: none; cursor: pointer;
+  padding: 16px 28px;
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #7a93b8;
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition), border-color var(--transition);
+  white-space: nowrap; display: flex; align-items: center; gap: 8px;
 }
 
 nav button:hover { color: #c0cde0; }
 nav button.active { color: #fff; border-bottom-color: var(--gold); }
 
 .badge {
-  background: var(--gold);
-  color: var(--navy-dark);
-  font-size: 10px;
-  font-weight: 500;
-  border-radius: 10px;
-  padding: 1px 7px;
-  letter-spacing: 0;
-  min-width: 18px;
-  text-align: center;
+  background: var(--gold); color: var(--navy-dark);
+  font-size: 10px; font-weight: 500; border-radius: 10px;
+  padding: 1px 7px; letter-spacing: 0; min-width: 18px; text-align: center;
 }
 
 main { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
@@ -121,15 +232,9 @@ main { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
 }
 
 .section-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  font-size: 10px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px;
 }
 .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
@@ -140,15 +245,9 @@ main { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
 .empty-state p { font-size: 13px; letter-spacing: 1px; }
 
 .btn {
-  font-family: 'Jost', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  border: none;
-  cursor: pointer;
-  border-radius: 8px;
-  padding: 10px 20px;
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase;
+  border: none; cursor: pointer; border-radius: 8px; padding: 10px 20px;
   transition: all var(--transition);
 }
 .btn-primary { background: var(--navy-dark); color: #fff; }
@@ -165,30 +264,19 @@ main { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
 .btn-icon:hover { color: #c0392b; background: #fdecea; }
 
 input[type="text"], textarea, select {
-  font-family: 'Jost', sans-serif;
-  font-size: 14px;
-  font-weight: 300;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: var(--text-primary);
+  font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; color: var(--text-primary);
   transition: border-color var(--transition), background var(--transition);
-  outline: none;
-  width: 100%;
+  outline: none; width: 100%;
 }
 input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--navy-mid); background: #fff; }
 select { cursor: pointer; }
 textarea { resize: vertical; min-height: 80px; }
 
 .tag {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 20px;
+  display: inline-block; font-size: 9px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase; padding: 3px 9px; border-radius: 20px;
 }
 .tag-lara { background: #e8eef6; color: var(--navy-mid); }
 .tag-alberto { background: #f0ede6; color: #7a4f2a; }
@@ -198,17 +286,13 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* GASTOS */
 .upload-zone {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 48px 32px;
-  text-align: center;
-  cursor: pointer;
-  transition: all var(--transition);
-  background: #fff;
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 48px 32px; text-align: center; cursor: pointer;
+  transition: all var(--transition); background: #fff;
 }
 .upload-zone:hover, .upload-zone.drag-over { border-color: var(--gold); background: #fdf9f0; }
 .upload-icon { font-size: 32px; margin-bottom: 16px; color: var(--gold); opacity: 0.7; }
-.upload-zone h3 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; color: var(--text-primary); margin-bottom: 8px; }
+.upload-zone h3 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; margin-bottom: 8px; }
 .upload-zone p { font-size: 12px; color: var(--text-muted); letter-spacing: 1px; line-height: 1.6; }
 .upload-zone .upload-hint { display: inline-block; margin-top: 12px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); font-weight: 500; }
 #csv-input { display: none; }
@@ -253,6 +337,34 @@ textarea { resize: vertical; min-height: 80px; }
 .item-name { font-size: 14px; color: var(--text-primary); }
 .market-item.bought .item-name { text-decoration: line-through; }
 
+/* REPOSITÓRIO */
+.repo-cat-pills { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+
+.repo-pill {
+  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 500;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--border); background: #fff;
+  color: var(--text-secondary); cursor: pointer; transition: all var(--transition);
+}
+.repo-pill:hover { border-color: var(--navy-mid); color: var(--navy-mid); }
+.repo-pill.active { background: var(--navy-dark); border-color: var(--navy-dark); color: #fff; }
+
+.repo-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.repo-chip {
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 400;
+  padding: 7px 14px; border-radius: 20px;
+  border: 1px solid var(--border); background: #fff;
+  color: var(--text-primary); cursor: pointer; transition: all var(--transition);
+  display: flex; align-items: center; gap: 6px;
+}
+.repo-chip:hover { border-color: var(--gold); background: #fdf9f0; }
+.repo-chip.in-list { background: var(--surface-2); color: var(--text-muted); border-color: var(--surface-2); }
+.repo-chip.in-list::after { content: '✓'; font-size: 10px; color: var(--gold); }
+.repo-chip.suggestion { border-style: dashed; color: var(--text-secondary); }
+.repo-chip.suggestion:hover { border-color: var(--gold); border-style: solid; }
+
 /* ORIENTAÇÕES */
 .filter-pills { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 .pill { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: #fff; color: var(--text-secondary); cursor: pointer; transition: all var(--transition); }
@@ -284,21 +396,13 @@ textarea { resize: vertical; min-height: 80px; }
 .todo-text { flex: 1; font-size: 14px; color: var(--text-primary); }
 .todo-item.done .todo-text { text-decoration: line-through; color: var(--text-muted); }
 
-/* LOADING OVERLAY */
-.loading-bar {
-  position: fixed;
-  top: 0; left: 0;
-  height: 2px;
-  width: 0%;
-  background: var(--gold);
-  transition: width 0.3s ease;
-  z-index: 9999;
-}
+/* LOADING BAR */
+.loading-bar { position: fixed; top: 0; left: 0; height: 2px; width: 0%; background: var(--gold); transition: width 0.3s ease; z-index: 9999; }
 .loading-bar.active { width: 60%; }
 .loading-bar.done { width: 100%; opacity: 0; transition: width 0.2s ease, opacity 0.3s ease 0.1s; }
 
 @media (max-width: 600px) {
-  header { padding: 16px 20px; }
+  header { padding: 14px 16px; }
   .logo-name { font-size: 22px; }
   main { padding: 20px 16px 48px; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -307,6 +411,7 @@ textarea { resize: vertical; min-height: 80px; }
   nav button { padding: 14px 18px; }
   .note-form .form-row { flex-direction: column; }
   .note-form select { width: 100%; }
+  .login-buttons { flex-direction: column; }
 }
 </style>
 </head>
@@ -314,15 +419,41 @@ textarea { resize: vertical; min-height: 80px; }
 
 <div class="loading-bar" id="loading-bar"></div>
 
+<!-- LOGIN -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo"><em>Amore</em> Fiore</div>
+    <div class="login-sub">Casa · Família · Vida</div>
+    <div class="login-question">Quem está a usar?</div>
+    <div class="login-buttons">
+      <button class="login-btn" onclick="selectUser('lara')">
+        Lara
+        <span class="login-btn-sub">entrar como Lara</span>
+      </button>
+      <button class="login-btn" onclick="selectUser('alberto')">
+        Alberto
+        <span class="login-btn-sub">entrar como Alberto</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="logo">
     <div class="logo-name"><em>Amore</em> Fiore</div>
     <div class="logo-sub">Casa · Família · Vida</div>
   </div>
-  <div class="header-date">
-    <div class="date-day" id="hdr-weekday"></div>
-    <div class="date-full" id="hdr-date"></div>
-    <div class="date-line"></div>
+  <div class="header-right">
+    <div class="header-date">
+      <div class="date-day" id="hdr-weekday"></div>
+      <div class="date-full" id="hdr-date"></div>
+      <div class="date-line"></div>
+    </div>
+    <div class="user-chip" onclick="switchUser()" id="user-chip" style="display:none">
+      <div class="user-avatar" id="user-avatar"></div>
+      <span class="user-name" id="user-name"></span>
+      <span class="user-switch">trocar</span>
+    </div>
   </div>
 </header>
 
@@ -354,7 +485,7 @@ textarea { resize: vertical; min-height: 80px; }
         <div class="stat-card"><div class="stat-label">Período</div><div class="stat-value" style="font-size:16px;padding-top:4px" id="stat-period">—</div></div>
         <div class="stat-card"><div class="stat-label">Maior Gasto</div><div class="stat-value" id="stat-max">—</div><div class="stat-sub" id="stat-max-desc"></div></div>
       </div>
-      <div class="categories-section" style="margin-bottom:28px">
+      <div style="margin-bottom:28px">
         <div class="section-label">Por Categoria</div>
         <div id="categories-bars"></div>
       </div>
@@ -380,6 +511,13 @@ textarea { resize: vertical; min-height: 80px; }
       </select>
       <button class="btn btn-primary" onclick="addMarketItem()">Adicionar</button>
     </div>
+
+    <div style="margin-bottom:28px">
+      <div class="section-label">Adicionar Rápido</div>
+      <div class="repo-cat-pills" id="repo-cat-pills"></div>
+      <div class="repo-chips" id="repo-chips"></div>
+    </div>
+
     <div id="market-pending-section">
       <div class="section-label">A Comprar</div>
       <div class="card" style="padding:0 20px"><ul class="market-list" id="market-list-pending"></ul></div>
@@ -450,12 +588,58 @@ textarea { resize: vertical; min-height: 80px; }
   document.getElementById('hdr-date').textContent = `${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
 })();
 
+// ── Login ─────────────────────────────────────────────────────────
+let currentUser = localStorage.getItem('af_user') || null;
+
+function selectUser(name) {
+  currentUser = name;
+  localStorage.setItem('af_user', name);
+  document.getElementById('login-overlay').classList.add('hidden');
+  updateUserChip();
+  syncPersonSelectors();
+}
+
+function switchUser() {
+  localStorage.removeItem('af_user');
+  currentUser = null;
+  document.getElementById('user-chip').style.display = 'none';
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
+function updateUserChip() {
+  if (!currentUser) return;
+  const chip = document.getElementById('user-chip');
+  const avatar = document.getElementById('user-avatar');
+  const name = document.getElementById('user-name');
+  chip.style.display = 'flex';
+  avatar.textContent = currentUser.charAt(0).toUpperCase();
+  avatar.className = `user-avatar avatar-${currentUser}`;
+  name.textContent = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+}
+
+function syncPersonSelectors() {
+  if (!currentUser) return;
+  ['market-person', 'todo-person'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = currentUser;
+  });
+}
+
+// Init login state
+if (currentUser) {
+  document.getElementById('login-overlay').classList.add('hidden');
+  updateUserChip();
+} else {
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
 // ── Tab switching ─────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.querySelector(`nav button[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'mercado') renderRepo();
 }
 
 // ── Loading bar ───────────────────────────────────────────────────
@@ -472,133 +656,74 @@ async function api(method, path, body) {
   return res.json();
 }
 
-// ── Category config ───────────────────────────────────────────────
-const CAT_COLORS = {
-  'Alimentação': '#2980b9', 'Transporte': '#8e44ad', 'Casa': '#16a085',
-  'Saúde': '#27ae60', 'Bebé · António': '#e67e22', 'Lazer': '#e74c3c', 'Outros': '#95a5a6'
+// ── Market repository ─────────────────────────────────────────────
+const REPO = {
+  '🥤 Bebidas': {
+    items: ['Água','Água com gás','Suco de laranja','Chá de limão gelado','Leite de aveia','Leite','Quinoto','Coca-Cola','Cerveja'],
+    suggestions: ['Kombucha','Kefir','Chá verde']
+  },
+  '🌅 Café da Manhã': {
+    items: ['Iogurte de baunilha','Morango','Mirtilo','Frutas vermelhas','Banana','Melão','Uva','Mamão','Geleia','Pão','Presunto','Queijo','Ovo','Abacate'],
+    suggestions: ['Granola','Pasta de amendoim','Chia']
+  },
+  '🍝 Refeições': {
+    items: ['Massa','Molho pesto','Molho de tomate','Molho panna','Tomate','Salada de folhas','Farro','Berinjela','Abobrinha','Frango','Atum (vidro)'],
+    suggestions: ['Salmão','Grão-de-bico','Lentilha','Tofu','Quinoa','Espinafre','Brócolis','Batata-doce']
+  },
+  '🧺 Básicos': {
+    items: ['Azeite','Alho','Cebola','Arroz'],
+    suggestions: ['Tahini','Húmus','Amêndoas','Sementes de chia']
+  }
 };
 
-const CAT_KEYWORDS = {
-  'Alimentação': ['mercado','continente','pingo doce','lidl','aldi','mini','supermercado','restaurante','cafe','café','padaria','talho','peixaria','uber eats','glovo','bolt food','takeaway','mcdonald','burger','pizza','sushi','wolt','ifood','snack'],
-  'Transporte':  ['uber','bolt','cabify','cp ','comboio','metro','autocarro','gasolina','bp ','galp','repsol','shell','parking','estacionamento','vias','portagem','tap ','ryanair','easyjet','vueling','transporte'],
-  'Casa':        ['ikea','leroy','bricomart','condominio','condomínio','renda','agua','eletricidade','gas ','gás','internet','vodafone','nos ','meo ','seguro','imobiliária','chave'],
-  'Saúde':       ['farmacia','farmácia','clínica','clinica','hospital','médico','medico','dentista','óptica','optica','análise','exame','consulta','saúde','saude','laboratorio'],
-  'Bebé · António': ['bebe','bebé','drogaria','fralda','chicco','prenatal','primark kids','baby','mothercare','antonio','bebê'],
-  'Lazer':       ['cinema','teatro','museu','netflix','spotify','amazon','disney','hbo','apple','google','steam','gaming','viagem','hotel','airbnb','booking','zara','h&m','mango','sport','ginásio','ginasio','fnac']
-};
+const repoCats = Object.keys(REPO);
+let repoActiveCat = repoCats[0];
 
-function categorize(desc) {
-  const d = (desc || '').toLowerCase();
-  for (const [cat, kws] of Object.entries(CAT_KEYWORDS)) {
-    if (kws.some(k => d.includes(k))) return cat;
-  }
-  return 'Outros';
-}
-
-// ── CSV Parsing ───────────────────────────────────────────────────
-function parseRevolutCSV(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const raw = lines[0];
-  const sep = raw.includes(';') ? ';' : ',';
-
-  function parseLine(line) {
-    const cols = []; let cur = ''; let inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; continue; }
-      if (c === sep && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
-      cur += c;
-    }
-    cols.push(cur.trim());
-    return cols;
-  }
-
-  const headers = parseLine(raw).map(h => h.toLowerCase().replace(/[^a-záàâãéêíóôõúç ]/g,'').trim());
-  function col(row, ...names) {
-    for (const n of names) {
-      const idx = headers.findIndex(h => h.includes(n));
-      if (idx >= 0 && row[idx] !== undefined) return row[idx];
-    }
-    return '';
-  }
-
-  const txs = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const row = parseLine(lines[i]);
-    const desc = col(row, 'description', 'merchant', 'descr');
-    const dateStr = col(row, 'started date', 'completed date', 'date', 'data');
-    const amtStr = col(row, 'amount', 'valor', 'montante');
-    const amt = parseFloat(amtStr.replace(',', '.').replace(/[^0-9.\-]/g, ''));
-    if (!desc || isNaN(amt) || amt >= 0) continue;
-    const d = new Date(dateStr);
-    txs.push({ desc, date: isNaN(d.getTime()) ? dateStr : d, amount: Math.abs(amt), category: categorize(desc) });
-  }
-  return txs;
-}
-
-function fmtDate(d) {
-  if (!(d instanceof Date) || isNaN(d.getTime())) return typeof d === 'string' ? d : '';
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-}
-function fmtEur(n) { return n.toFixed(2).replace('.', ',') + ' €'; }
-
-function renderGastos(txs) {
-  if (!txs || txs.length === 0) return;
-  document.getElementById('gastos-upload-area').style.display = 'none';
-  document.getElementById('gastos-data').style.display = 'block';
-  const total = txs.reduce((s, t) => s + t.amount, 0);
-  document.getElementById('stat-total').textContent = fmtEur(total);
-  document.getElementById('stat-count').textContent = txs.length;
-  const dates = txs.map(t => t.date instanceof Date ? t.date : null).filter(Boolean);
-  if (dates.length) {
-    document.getElementById('stat-period').textContent = fmtDate(new Date(Math.min(...dates))) + ' – ' + fmtDate(new Date(Math.max(...dates)));
-  }
-  const maxTx = txs.reduce((a, b) => a.amount > b.amount ? a : b);
-  document.getElementById('stat-max').textContent = fmtEur(maxTx.amount);
-  document.getElementById('stat-max-desc').textContent = maxTx.desc.substring(0, 28);
-  const catMap = {};
-  for (const t of txs) catMap[t.category] = (catMap[t.category] || 0) + t.amount;
-  const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
-  const maxCat = sortedCats[0][1];
-  const barsEl = document.getElementById('categories-bars');
-  barsEl.innerHTML = sortedCats.map(([cat, sum]) => {
-    const pct = (sum / maxCat * 100).toFixed(1);
-    return `<div class="category-bar-row">
-      <div class="category-bar-label">${cat}</div>
-      <div class="category-bar-track"><div class="category-bar-fill" style="width:${pct}%;background:${CAT_COLORS[cat]||'#95a5a6'}"></div></div>
-      <div class="category-bar-value">${fmtEur(sum)}</div>
-    </div>`;
-  }).join('');
-  const listEl = document.getElementById('transactions-list');
-  listEl.innerHTML = txs.slice(0, 30).map(t =>
-    `<li class="transaction-item">
-      <span class="tx-dot" style="background:${CAT_COLORS[t.category]||'#95a5a6'}"></span>
-      <span class="tx-desc">${t.desc}</span>
-      <span class="tx-date">${fmtDate(t.date)}</span>
-      <span class="tx-amount">−${fmtEur(t.amount)}</span>
-    </li>`
+function renderRepoCatPills() {
+  const el = document.getElementById('repo-cat-pills');
+  el.innerHTML = repoCats.map(cat =>
+    `<button class="repo-pill${cat === repoActiveCat ? ' active' : ''}" onclick="setRepoCat('${cat}',this)">${cat}</button>`
   ).join('');
 }
 
-function resetGastos() {
-  document.getElementById('gastos-upload-area').style.display = 'block';
-  document.getElementById('gastos-data').style.display = 'none';
-  document.getElementById('csv-input').value = '';
+function setRepoCat(cat, el) {
+  repoActiveCat = cat;
+  document.querySelectorAll('.repo-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderRepoChips();
 }
 
-const uploadZone = document.getElementById('upload-zone');
-const csvInput = document.getElementById('csv-input');
-uploadZone.addEventListener('click', () => csvInput.click());
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) readCSV(e.dataTransfer.files[0]); });
-csvInput.addEventListener('change', e => { if (e.target.files[0]) readCSV(e.target.files[0]); });
-function readCSV(file) {
-  const reader = new FileReader();
-  reader.onload = e => renderGastos(parseRevolutCSV(e.target.result));
-  reader.readAsText(file, 'UTF-8');
+function renderRepoChips() {
+  const { items, suggestions } = REPO[repoActiveCat];
+  const pendingNames = marketItems.filter(i => !i.bought).map(i => i.name.toLowerCase());
+  const el = document.getElementById('repo-chips');
+  const allChips = [
+    ...items.map(name => ({ name, isSuggestion: false })),
+    ...suggestions.map(name => ({ name, isSuggestion: true }))
+  ];
+  el.innerHTML = allChips.map(({ name, isSuggestion }) => {
+    const inList = pendingNames.includes(name.toLowerCase());
+    return `<button class="repo-chip${inList ? ' in-list' : ''}${isSuggestion ? ' suggestion' : ''}" onclick="quickAddItem('${name.replace(/'/g,"\\'")}')">
+      ${isSuggestion ? '✦ ' : ''}${name}
+    </button>`;
+  }).join('');
+}
+
+function renderRepo() {
+  renderRepoCatPills();
+  renderRepoChips();
+}
+
+async function quickAddItem(name) {
+  const already = marketItems.find(i => i.name.toLowerCase() === name.toLowerCase() && !i.bought);
+  if (already) return;
+  loadStart();
+  const person = currentUser || 'ambos';
+  const item = await api('POST', '/market', { name, person });
+  marketItems.unshift(item);
+  renderMarket();
+  renderRepoChips();
+  loadDone();
 }
 
 // ── MERCADO ───────────────────────────────────────────────────────
@@ -614,6 +739,7 @@ async function addMarketItem() {
   marketItems.unshift(item);
   document.getElementById('market-input').value = '';
   renderMarket();
+  renderRepoChips();
   loadDone();
 }
 
@@ -621,9 +747,10 @@ async function toggleMarketItem(id) {
   const item = marketItems.find(i => i.id === id);
   if (!item) return;
   loadStart();
-  const updated = await api('PATCH', `/market/${id}`, { bought: item.bought ? 0 : 1 });
+  const updated = await api('PATCH', `/market/${id}`, { bought: !item.bought });
   Object.assign(item, updated);
   renderMarket();
+  renderRepoChips();
   loadDone();
 }
 
@@ -632,6 +759,7 @@ async function removeMarketItem(id) {
   await api('DELETE', `/market/${id}`);
   marketItems = marketItems.filter(i => i.id !== id);
   renderMarket();
+  renderRepoChips();
   loadDone();
 }
 
@@ -753,7 +881,7 @@ async function toggleTodo(id) {
   const t = todos.find(t => t.id === id);
   if (!t) return;
   loadStart();
-  const updated = await api('PATCH', `/todos/${id}`, { done: t.done ? 0 : 1 });
+  const updated = await api('PATCH', `/todos/${id}`, { done: !t.done });
   Object.assign(t, updated);
   renderTodos();
   loadDone();
@@ -769,8 +897,8 @@ async function removeTodo(id) {
 
 function renderTodos() {
   let filtered = todos;
-  if (todoFilter === 'lara')     filtered = todos.filter(t => t.person === 'lara' || t.person === 'ambos');
-  if (todoFilter === 'alberto')  filtered = todos.filter(t => t.person === 'alberto' || t.person === 'ambos');
+  if (todoFilter === 'lara')      filtered = todos.filter(t => t.person === 'lara' || t.person === 'ambos');
+  if (todoFilter === 'alberto')   filtered = todos.filter(t => t.person === 'alberto' || t.person === 'ambos');
   if (todoFilter === 'pendentes') filtered = todos.filter(t => !t.done);
   const listEl = document.getElementById('todo-list');
   if (filtered.length === 0) {
@@ -792,20 +920,90 @@ function renderTodos() {
   badge.style.display = pending > 0 ? 'inline-block' : 'none';
 }
 
-// ── Init: load all data ───────────────────────────────────────────
+// ── CSV / Gastos ──────────────────────────────────────────────────
+const CAT_COLORS = {
+  'Alimentação':'#2980b9','Transporte':'#8e44ad','Casa':'#16a085',
+  'Saúde':'#27ae60','Bebé · António':'#e67e22','Lazer':'#e74c3c','Outros':'#95a5a6'
+};
+const CAT_KEYWORDS = {
+  'Alimentação':['mercado','continente','pingo doce','lidl','aldi','mini','supermercado','restaurante','cafe','café','padaria','talho','peixaria','uber eats','glovo','bolt food','takeaway','mcdonald','burger','pizza','sushi','wolt','ifood','snack'],
+  'Transporte': ['uber','bolt','cabify','cp ','comboio','metro','autocarro','gasolina','bp ','galp','repsol','shell','parking','estacionamento','vias','portagem','tap ','ryanair','easyjet','vueling','transporte'],
+  'Casa':       ['ikea','leroy','bricomart','condominio','condomínio','renda','agua','eletricidade','gas ','gás','internet','vodafone','nos ','meo ','seguro','imobiliária','chave'],
+  'Saúde':      ['farmacia','farmácia','clínica','clinica','hospital','médico','medico','dentista','óptica','optica','análise','exame','consulta','saúde','saude','laboratorio'],
+  'Bebé · António':['bebe','bebé','drogaria','fralda','chicco','prenatal','primark kids','baby','mothercare','antonio','bebê'],
+  'Lazer':      ['cinema','teatro','museu','netflix','spotify','amazon','disney','hbo','apple','google','steam','gaming','viagem','hotel','airbnb','booking','zara','h&m','mango','sport','ginásio','ginasio','fnac']
+};
+function categorize(desc) {
+  const d = (desc||'').toLowerCase();
+  for (const [cat,kws] of Object.entries(CAT_KEYWORDS)) if (kws.some(k=>d.includes(k))) return cat;
+  return 'Outros';
+}
+function parseRevolutCSV(text) {
+  const lines = text.trim().split('\n'); if (lines.length<2) return [];
+  const sep = lines[0].includes(';') ? ';' : ',';
+  function parseLine(line) {
+    const cols=[]; let cur='',inQ=false;
+    for (const c of line) { if(c==='"'){inQ=!inQ;continue} if(c===sep&&!inQ){cols.push(cur.trim());cur='';continue} cur+=c; }
+    cols.push(cur.trim()); return cols;
+  }
+  const headers = parseLine(lines[0]).map(h=>h.toLowerCase().replace(/[^a-záàâãéêíóôõúç ]/g,'').trim());
+  function col(row,...names) { for(const n of names){const i=headers.findIndex(h=>h.includes(n));if(i>=0&&row[i]!==undefined)return row[i];} return ''; }
+  const txs=[];
+  for (let i=1;i<lines.length;i++) {
+    if (!lines[i].trim()) continue;
+    const row=parseLine(lines[i]);
+    const desc=col(row,'description','merchant','descr');
+    const dateStr=col(row,'started date','completed date','date','data');
+    const amt=parseFloat(col(row,'amount','valor','montante').replace(',','.').replace(/[^0-9.\-]/g,''));
+    if (!desc||isNaN(amt)||amt>=0) continue;
+    const d=new Date(dateStr);
+    txs.push({desc,date:isNaN(d.getTime())?dateStr:d,amount:Math.abs(amt),category:categorize(desc)});
+  }
+  return txs;
+}
+function fmtDate(d) { if(!(d instanceof Date)||isNaN(d.getTime())) return typeof d==='string'?d:''; return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+function fmtEur(n) { return n.toFixed(2).replace('.',',')+' €'; }
+function renderGastos(txs) {
+  if (!txs||txs.length===0) return;
+  document.getElementById('gastos-upload-area').style.display='none';
+  document.getElementById('gastos-data').style.display='block';
+  const total=txs.reduce((s,t)=>s+t.amount,0);
+  document.getElementById('stat-total').textContent=fmtEur(total);
+  document.getElementById('stat-count').textContent=txs.length;
+  const dates=txs.map(t=>t.date instanceof Date?t.date:null).filter(Boolean);
+  if(dates.length) document.getElementById('stat-period').textContent=fmtDate(new Date(Math.min(...dates)))+' – '+fmtDate(new Date(Math.max(...dates)));
+  const maxTx=txs.reduce((a,b)=>a.amount>b.amount?a:b);
+  document.getElementById('stat-max').textContent=fmtEur(maxTx.amount);
+  document.getElementById('stat-max-desc').textContent=maxTx.desc.substring(0,28);
+  const catMap={};
+  for(const t of txs) catMap[t.category]=(catMap[t.category]||0)+t.amount;
+  const sorted=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const maxC=sorted[0][1];
+  document.getElementById('categories-bars').innerHTML=sorted.map(([cat,sum])=>`<div class="category-bar-row"><div class="category-bar-label">${cat}</div><div class="category-bar-track"><div class="category-bar-fill" style="width:${(sum/maxC*100).toFixed(1)}%;background:${CAT_COLORS[cat]||'#95a5a6'}"></div></div><div class="category-bar-value">${fmtEur(sum)}</div></div>`).join('');
+  document.getElementById('transactions-list').innerHTML=txs.slice(0,30).map(t=>`<li class="transaction-item"><span class="tx-dot" style="background:${CAT_COLORS[t.category]||'#95a5a6'}"></span><span class="tx-desc">${t.desc}</span><span class="tx-date">${fmtDate(t.date)}</span><span class="tx-amount">−${fmtEur(t.amount)}</span></li>`).join('');
+}
+function resetGastos() { document.getElementById('gastos-upload-area').style.display='block'; document.getElementById('gastos-data').style.display='none'; document.getElementById('csv-input').value=''; }
+const uploadZone=document.getElementById('upload-zone');
+const csvInput=document.getElementById('csv-input');
+uploadZone.addEventListener('click',()=>csvInput.click());
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over');});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag-over');if(e.dataTransfer.files[0])readCSV(e.dataTransfer.files[0]);});
+csvInput.addEventListener('change',e=>{if(e.target.files[0])readCSV(e.target.files[0]);});
+function readCSV(file){const r=new FileReader();r.onload=e=>renderGastos(parseRevolutCSV(e.target.result));r.readAsText(file,'UTF-8');}
+
+// ── Init ──────────────────────────────────────────────────────────
 async function init() {
   loadStart();
-  const [m, n, t] = await Promise.all([
-    api('GET', '/market'),
-    api('GET', '/notes'),
-    api('GET', '/todos')
-  ]);
-  marketItems = m || [];
-  notes = n || [];
-  todos = t || [];
+  const [m,n,t] = await Promise.all([api('GET','/market'),api('GET','/notes'),api('GET','/todos')]);
+  marketItems = m||[];
+  notes = n||[];
+  todos = t||[];
   renderMarket();
   renderNotes();
   renderTodos();
+  renderRepo();
+  syncPersonSelectors();
   loadDone();
 }
 
