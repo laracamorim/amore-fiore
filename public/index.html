@@ -262,6 +262,15 @@ main { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
   border-radius: 6px; transition: color var(--transition), background var(--transition); line-height: 1;
 }
 .btn-icon:hover { color: #c0392b; background: #fdecea; }
+.btn-copy {
+  background: none; border: 1px solid var(--border); cursor: pointer;
+  color: var(--text-muted); font-size: 11px; font-weight: 500;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 6px;
+  transition: all var(--transition); font-family: 'Jost', sans-serif;
+}
+.btn-copy:hover { border-color: var(--gold); color: var(--gold); background: #fdf9f0; }
+.btn-copy.copied { border-color: #27ae60; color: #27ae60; }
 
 input[type="text"], textarea, select {
   font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;
@@ -377,12 +386,23 @@ textarea { resize: vertical; min-height: 80px; }
 .note-form .form-row { display: flex; gap: 10px; margin-bottom: 12px; }
 .note-form select { width: 180px; flex-shrink: 0; }
 .note-form .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
-.notes-list { display: flex; flex-direction: column; gap: 12px; }
+.notes-list { display: flex; flex-direction: column; gap: 20px; }
+.week-group {}
+.week-header {
+  font-size: 10px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+.week-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.week-current .week-header { color: var(--gold); }
+.week-current .week-header::after { background: #f0e0b0; }
+.week-notes { display: flex; flex-direction: column; gap: 10px; }
 .note-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; border-left-width: 3px; display: flex; flex-direction: column; gap: 10px; }
 .note-card.dest-diarista { border-left-color: var(--navy-mid); }
 .note-card.dest-enfermeira { border-left-color: var(--gold); }
 .note-card-header { display: flex; align-items: center; justify-content: space-between; }
 .note-card-meta { display: flex; align-items: center; gap: 8px; }
+.note-card-actions { display: flex; align-items: center; gap: 6px; }
 .note-card-date { font-size: 11px; color: var(--text-muted); }
 .note-card-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; }
 
@@ -831,6 +851,32 @@ async function removeNote(id) {
   loadDone();
 }
 
+function getWeekStart(ts) {
+  const d = new Date(ts * 1000);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  const mon = new Date(d); mon.setDate(d.getDate() + diff); mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function fmtWeekLabel(mon) {
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const sameMonth = mon.getMonth() === sun.getMonth();
+  return sameMonth
+    ? `${mon.getDate()}–${sun.getDate()} ${months[mon.getMonth()]}`
+    : `${mon.getDate()} ${months[mon.getMonth()]} – ${sun.getDate()} ${months[sun.getMonth()]}`;
+}
+
+function copyNote(id) {
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  navigator.clipboard.writeText(note.text).then(() => {
+    const btn = document.getElementById(`copy-btn-${id}`);
+    if (btn) { btn.textContent = 'copiado ✓'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000); }
+  });
+}
+
 function renderNotes() {
   const filtered = noteFilter === 'all' ? notes : notes.filter(n => n.dest === noteFilter);
   const container = document.getElementById('notes-list');
@@ -838,17 +884,38 @@ function renderNotes() {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">✦</div><p>Nenhuma orientação aqui</p></div>`;
     return;
   }
-  container.innerHTML = filtered.map(n => {
-    const d = new Date(n.created_at * 1000);
-    return `<div class="note-card dest-${n.dest}">
-      <div class="note-card-header">
-        <div class="note-card-meta">
-          <span class="tag tag-${n.dest}">${n.dest.charAt(0).toUpperCase()+n.dest.slice(1)}</span>
-          <span class="note-card-date">${fmtDate(d)}</span>
-        </div>
-        <button class="btn-icon" onclick="removeNote(${n.id})">✕</button>
-      </div>
-      <div class="note-card-text">${n.text}</div>
+
+  const thisWeekStart = getWeekStart(Math.floor(Date.now()/1000)).getTime();
+  const weekMap = new Map();
+  for (const n of filtered) {
+    const ws = getWeekStart(n.created_at).getTime();
+    if (!weekMap.has(ws)) weekMap.set(ws, []);
+    weekMap.get(ws).push(n);
+  }
+  const sortedWeeks = [...weekMap.keys()].sort((a,b) => b - a);
+
+  container.innerHTML = sortedWeeks.map(ws => {
+    const isCurrent = ws === thisWeekStart;
+    const label = isCurrent ? '✦ Esta semana' : `Semana de ${fmtWeekLabel(new Date(ws))}`;
+    const weekNotes = weekMap.get(ws);
+    return `<div class="week-group${isCurrent ? ' week-current' : ''}">
+      <div class="week-header">${label}</div>
+      <div class="week-notes">${weekNotes.map(n => {
+        const d = new Date(n.created_at * 1000);
+        return `<div class="note-card dest-${n.dest}">
+          <div class="note-card-header">
+            <div class="note-card-meta">
+              <span class="tag tag-${n.dest}">${n.dest.charAt(0).toUpperCase()+n.dest.slice(1)}</span>
+              <span class="note-card-date">${fmtDate(d)}</span>
+            </div>
+            <div class="note-card-actions">
+              <button class="btn-copy" id="copy-btn-${n.id}" onclick="copyNote(${n.id})">copiar</button>
+              <button class="btn-icon" onclick="removeNote(${n.id})">✕</button>
+            </div>
+          </div>
+          <div class="note-card-text">${n.text}</div>
+        </div>`;
+      }).join('')}</div>
     </div>`;
   }).join('');
 }
