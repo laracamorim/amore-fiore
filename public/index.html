@@ -328,16 +328,21 @@ textarea { resize: vertical; min-height: 80px; }
 .tx-amount { font-size: 14px; font-weight: 400; color: #c0392b; flex-shrink: 0; min-width: 72px; text-align: right; }
 .reset-btn-row { margin-top: 20px; text-align: right; }
 
-.month-bar-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-.month-bar-row:last-child { margin-bottom:0; }
-.month-bar-label { font-size:12px; color:var(--text-secondary); width:48px; flex-shrink:0; }
-.month-bar-track { flex:1; height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; }
-.month-bar-fill { height:100%; background:var(--navy-mid); border-radius:5px; transition:width 0.6s ease; }
-.month-bar-fill.over { background:#e74c3c; }
-.month-bar-values { display:flex; gap:4px; align-items:baseline; flex-shrink:0; min-width:130px; justify-content:flex-end; }
-.month-bar-values span { font-size:12px; color:var(--text-muted); }
-.month-bar-values .over-budget { color:#e74c3c; font-weight:500; }
+.cycle-row { margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--surface-2); }
+.cycle-row:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+.cycle-header { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-bottom:8px; }
+.cycle-name { font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:400; color:var(--navy-dark); }
+.cycle-dates { font-size:11px; color:var(--text-muted); flex:1; }
+.cycle-status { font-size:13px; color:var(--text-secondary); display:flex; align-items:baseline; gap:5px; flex-shrink:0; }
+.cycle-status strong { font-weight:500; font-size:14px; }
+.cycle-surplus { color:#27ae60; font-size:12px; }
+.over-budget { color:#e74c3c !important; }
 .budget-target { font-size:11px; color:var(--text-muted); }
+.cycle-bar-track { height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; margin-bottom:10px; }
+.cycle-bar-fill { height:100%; background:var(--navy-mid); border-radius:5px; transition:width 0.7s ease; }
+.cycle-bar-fill.over { background:#e74c3c; }
+.cycle-cats { display:flex; flex-wrap:wrap; gap:6px; }
+.cycle-cat-tag { font-size:10px; font-weight:500; padding:3px 8px; border-radius:12px; border:1px solid; letter-spacing:0.5px; }
 
 /* MERCADO */
 .add-row { display: flex; gap: 8px; margin-bottom: 24px; }
@@ -1051,19 +1056,20 @@ function parseRows(rows) {
     }
     return '';
   }
-  const txs = []; const deposits = {};
+  const txs = []; const depositEvents = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const desc    = col(row,'description','merchant');
     const dateStr = col(row,'started date','completed date','date');
     const amtRaw  = col(row,'amount','valor');
+    const balRaw  = col(row,'balance','saldo');
     const amt     = parseFloat(String(amtRaw).replace(',','.').replace(/[^0-9.\-]/g,''));
+    const bal     = parseFloat(String(balRaw).replace(',','.').replace(/[^0-9.\-]/g,''));
     if (!desc || isNaN(amt)) continue;
     const d = new Date(dateStr);
     const dateObj = isNaN(d.getTime()) ? null : d;
     if (amt > 500) {
-      const m = depositMonth(dateStr);
-      deposits[m] = (deposits[m]||0) + amt;
+      depositEvents.push({date: dateObj, dateStr, amount: amt});
     } else if (amt < 0) {
       const cat = categorize(desc);
       if (cat === 'AMAZON_SPLIT') {
@@ -1074,7 +1080,56 @@ function parseRows(rows) {
       }
     }
   }
-  return {txs, deposits};
+  return {txs, depositEvents};
+}
+
+// Agrupa depósitos em ciclos (depósitos com < 14 dias de diferença = mesmo ciclo)
+function buildCycles(depositEvents, txs) {
+  if (!depositEvents.length) return [];
+  const sorted = [...depositEvents].sort((a,b) => a.date - b.date);
+  const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Agrupar depósitos próximos num único ciclo
+  const groups = [];
+  let cur = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const diff = (sorted[i].date - cur[cur.length-1].date) / 86400000;
+    if (diff <= 14) { cur.push(sorted[i]); }
+    else { groups.push(cur); cur = [sorted[i]]; }
+  }
+  groups.push(cur);
+
+  // Nomear cada ciclo: dia >= 26 → mês seguinte
+  const cycles = groups.map((grp, idx) => {
+    const firstDate = grp[0].date;
+    const totalDep  = grp.reduce((s,d) => s+d.amount, 0);
+    let month = firstDate.getMonth(); // 0-indexed
+    let year  = firstDate.getFullYear();
+    if (firstDate.getDate() >= 26) { month++; if (month > 11) { month = 0; year++; } }
+    const name = MONTH_NAMES[month] + ' ' + String(year).slice(2);
+    const start = grp[0].date;
+    const end   = idx < groups.length - 1 ? new Date(groups[idx+1][0].date - 86400000) : null; // dia antes do próx depósito
+    return { name, start, end, deposit: totalDep };
+  });
+
+  // Excluir o primeiro ciclo (é o de abertura — incompleto)
+  const activeCycles = cycles.slice(1);
+
+  // Calcular gastos de cada ciclo
+  return activeCycles.map(cy => {
+    const cyTxs = txs.filter(t => {
+      if (!(t.date instanceof Date)) return false;
+      if (t.date < cy.start) return false;
+      if (cy.end && t.date > cy.end) return false;
+      return true;
+    });
+    const catTotals = {};
+    for (const t of cyTxs) catTotals[t.category] = (catTotals[t.category]||0) + t.amount;
+    const total = Object.values(catTotals).reduce((s,v)=>s+v,0);
+    const days  = cy.end ? Math.round((cy.end - cy.start)/86400000) : Math.round((new Date()-cy.start)/86400000);
+    const isActive = !cy.end;
+    return {...cy, catTotals, total, days, isActive};
+  });
 }
 
 function parseRevolutCSV(text) {
@@ -1102,7 +1157,7 @@ function fmtDate(d) {
 }
 function fmtEur(n) { return n.toFixed(2).replace('.',',')+' €'; }
 
-function renderGastos({txs, deposits}) {
+function renderGastos({txs, depositEvents}) {
   if (!txs||txs.length===0) return;
   document.getElementById('gastos-upload-area').style.display='none';
   document.getElementById('gastos-data').style.display='block';
@@ -1116,36 +1171,34 @@ function renderGastos({txs, deposits}) {
   document.getElementById('stat-max').textContent = fmtEur(maxTx.amount);
   document.getElementById('stat-max-desc').textContent = maxTx.desc.substring(0,28);
 
-  // Monthly budget tracker
-  const monthlyExp = {};
-  for (const t of txs) {
-    const m = t.date instanceof Date ? `${t.date.getFullYear()}-${String(t.date.getMonth()+1).padStart(2,'0')}` : null;
-    if (m) monthlyExp[m] = (monthlyExp[m]||0) + t.amount;
-  }
+  // Ciclos reais
+  const cycles = buildCycles(depositEvents, txs);
   const BUDGET = 3000;
-  const mLabels = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
-  const months = Object.keys({...monthlyExp,...deposits}).sort();
-  const monthlyHTML = months.map(m => {
-    const exp = monthlyExp[m]||0;
-    const dep = deposits[m]||0;
-    const budget = dep > 0 ? dep : BUDGET;
-    const pct = Math.min(exp/budget*100,100).toFixed(0);
-    const over = exp > budget;
-    const label = mLabels[parseInt(m.split('-')[1])] + ' ' + m.split('-')[0].slice(2);
-    return `<div class="month-bar-row">
-      <div class="month-bar-label">${label}</div>
-      <div class="month-bar-track">
-        <div class="month-bar-fill${over?' over':''}" style="width:${pct}%"></div>
+
+  const cycleHTML = cycles.map(cy => {
+    const pct  = Math.min(cy.total / BUDGET * 100, 100).toFixed(0);
+    const over = cy.total > BUDGET;
+    const diff = BUDGET - cy.total;
+    const endLabel = cy.isActive ? 'em curso' : fmtDate(cy.end);
+    const statusIcon = cy.isActive ? '🔄' : (over ? '⚠️' : '✅');
+    const topCats = Object.entries(cy.catTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const topStr  = topCats.map(([c,v])=>`<span class="cycle-cat-tag" style="background:${CAT_COLORS[c]||'#eee'}22;border-color:${CAT_COLORS[c]||'#ccc'}44;color:${CAT_COLORS[c]||'#666'}">${c} ${fmtEur(v)}</span>`).join('');
+    return `<div class="cycle-row">
+      <div class="cycle-header">
+        <span class="cycle-name">${cy.name}</span>
+        <span class="cycle-dates">${fmtDate(cy.start)} → ${endLabel} · ${cy.days} dias</span>
+        <span class="cycle-status">${statusIcon} <strong class="${over?'over-budget':''}">${fmtEur(cy.total)}</strong> <span class="budget-target">/ €${BUDGET}</span> <span class="${over?'over-budget':'cycle-surplus'}">${diff>=0?'+':''}${fmtEur(Math.abs(diff))}</span></span>
       </div>
-      <div class="month-bar-values">
-        <span class="${over?'over-budget':''}">${fmtEur(exp)}</span>
-        <span class="budget-target">/ €${budget.toFixed(0)}</span>
+      <div class="cycle-bar-track">
+        <div class="cycle-bar-fill${over?' over':''}" style="width:${pct}%"></div>
       </div>
+      <div class="cycle-cats">${topStr}</div>
     </div>`;
   }).join('');
-  document.getElementById('monthly-tracker').innerHTML = monthlyHTML || '<p style="color:var(--text-muted);font-size:13px">Sem dados suficientes</p>';
 
-  // Categories
+  document.getElementById('monthly-tracker').innerHTML = cycleHTML || '<p style="color:var(--text-muted);font-size:13px">Sem dados suficientes para detectar ciclos</p>';
+
+  // Categorias (total período)
   const catMap = {};
   for (const t of txs) catMap[t.category] = (catMap[t.category]||0)+t.amount;
   const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
@@ -1157,7 +1210,7 @@ function renderGastos({txs, deposits}) {
       <div class="category-bar-value">${fmtEur(sum)}</div>
     </div>`).join('');
 
-  // Transactions
+  // Transações
   document.getElementById('transactions-list').innerHTML = txs.slice(0,30).map(t =>
     `<li class="transaction-item">
       <span class="tx-dot" style="background:${CAT_COLORS[t.category]||'#95a5a6'}"></span>
