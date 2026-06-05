@@ -1056,27 +1056,60 @@ function parseRows(rows) {
     }
     return '';
   }
-  const txs = []; const depositEvents = [];
+
+  // Primeira passagem: recolher todos os eventos
+  const allEvents = [];
   for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
+    const row  = rows[i];
     const desc    = col(row,'description','merchant');
     const dateStr = col(row,'started date','completed date','date');
     const amtRaw  = col(row,'amount','valor');
-    const balRaw  = col(row,'balance','saldo');
     const amt     = parseFloat(String(amtRaw).replace(',','.').replace(/[^0-9.\-]/g,''));
-    const bal     = parseFloat(String(balRaw).replace(',','.').replace(/[^0-9.\-]/g,''));
     if (!desc || isNaN(amt)) continue;
     const d = new Date(dateStr);
     const dateObj = isNaN(d.getTime()) ? null : d;
+    const isCash  = desc.toLowerCase().includes('cash withdrawal') || desc.toLowerCase().includes('atm withdrawal');
+    allEvents.push({desc, date: dateObj, amt, isCash});
+  }
+
+  // Detectar depósitos "neutralizados" por levantamentos de cash próximos
+  // Regra: se levantamentos cash nos 10 dias seguintes >= 70% do depósito → ambos excluídos
+  const neutralizedIdx = new Set();
+  for (let i = 0; i < allEvents.length; i++) {
+    const ev = allEvents[i];
+    if (ev.amt <= 500) continue; // só depósitos significativos
+    let cashSum = 0; const cashIdxs = [];
+    for (let j = i + 1; j < allEvents.length; j++) {
+      const other = allEvents[j];
+      if (!other.date || !ev.date) continue;
+      const daysDiff = (other.date - ev.date) / 86400000;
+      if (daysDiff > 10) break;
+      if (other.isCash && other.amt < 0) {
+        cashSum += Math.abs(other.amt);
+        cashIdxs.push(j);
+      }
+    }
+    if (cashSum >= ev.amt * 0.7) {
+      neutralizedIdx.add(i);
+      cashIdxs.forEach(j => neutralizedIdx.add(j));
+    }
+  }
+
+  // Segunda passagem: construir listas limpas
+  const txs = []; const depositEvents = [];
+  for (let i = 0; i < allEvents.length; i++) {
+    if (neutralizedIdx.has(i)) continue; // excluir cash neutralizado
+    const {desc, date, amt, isCash} = allEvents[i];
+    if (isCash) continue; // excluir todos os cash withdrawals restantes
     if (amt > 500) {
-      depositEvents.push({date: dateObj, dateStr, amount: amt});
+      depositEvents.push({date, amount: amt});
     } else if (amt < 0) {
       const cat = categorize(desc);
       if (cat === 'AMAZON_SPLIT') {
-        txs.push({desc,date:dateObj||dateStr,amount:Math.abs(amt)*0.5,category:'Casa & Deco'});
-        txs.push({desc,date:dateObj||dateStr,amount:Math.abs(amt)*0.5,category:'Bebé · António'});
+        txs.push({desc,date,amount:Math.abs(amt)*0.5,category:'Casa & Deco'});
+        txs.push({desc,date,amount:Math.abs(amt)*0.5,category:'Bebé · António'});
       } else {
-        txs.push({desc,date:dateObj||dateStr,amount:Math.abs(amt),category:cat});
+        txs.push({desc,date,amount:Math.abs(amt),category:cat});
       }
     }
   }
