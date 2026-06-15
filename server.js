@@ -41,6 +41,13 @@ async function initDB() {
       tx_key TEXT UNIQUE NOT NULL,
       uploaded_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
     );
+    CREATE TABLE IF NOT EXISTS deposits (
+      id SERIAL PRIMARY KEY,
+      dep_date DATE NOT NULL,
+      amount NUMERIC(10,2) NOT NULL,
+      dep_key TEXT UNIQUE NOT NULL,
+      uploaded_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
+    );
     CREATE TABLE IF NOT EXISTS gastos_meta (
       id INTEGER PRIMARY KEY DEFAULT 1,
       last_updated BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
@@ -85,12 +92,13 @@ app.use('/api/todos',  crudRouter('todos',  ['text', 'person']));
 // ── Transactions ──────────────────────────────────────────────────
 app.get('/api/transactions', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM transactions ORDER BY tx_date DESC');
+  const deposits = await pool.query('SELECT * FROM deposits ORDER BY dep_date ASC');
   const meta = await pool.query('SELECT last_updated FROM gastos_meta WHERE id = 1');
-  res.json({ transactions: rows, last_updated: meta.rows[0]?.last_updated || null });
+  res.json({ transactions: rows, deposits: deposits.rows, last_updated: meta.rows[0]?.last_updated || null });
 });
 
 app.post('/api/transactions/sync', async (req, res) => {
-  const { transactions } = req.body;
+  const { transactions, deposits } = req.body;
   if (!Array.isArray(transactions) || transactions.length === 0) {
     return res.status(400).json({ error: 'No transactions provided' });
   }
@@ -109,6 +117,17 @@ app.post('/api/transactions/sync', async (req, res) => {
       );
       result.rowCount > 0 ? inserted++ : skipped++;
     }
+    if (Array.isArray(deposits)) {
+      for (const dep of deposits) {
+        const key = `${dep.dep_date}|${dep.amount}`;
+        await client.query(
+          `INSERT INTO deposits (dep_date, amount, dep_key)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (dep_key) DO NOTHING`,
+          [dep.dep_date, dep.amount, key]
+        );
+      }
+    }
     await client.query(`UPDATE gastos_meta SET last_updated = EXTRACT(EPOCH FROM NOW()) WHERE id = 1`);
     await client.query('COMMIT');
     res.json({ inserted, skipped });
@@ -122,6 +141,7 @@ app.post('/api/transactions/sync', async (req, res) => {
 
 app.delete('/api/transactions', async (req, res) => {
   await pool.query('DELETE FROM transactions');
+  await pool.query('DELETE FROM deposits');
   await pool.query(`UPDATE gastos_meta SET last_updated = EXTRACT(EPOCH FROM NOW()) WHERE id = 1`);
   res.status(204).end();
 });
